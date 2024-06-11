@@ -147,7 +147,45 @@ void send_file(int sockfd, struct sockaddr_in *addr, Input *input) {
 	send_ping(sockfd, addr, (char *)file_sent->xored_filehash, &header_payload, SHA256_BLOCK_SIZE);
 	printf("xor_filehash send with ICMP echo request to %s\n", inet_ntoa(addr->sin_addr));
 	receive_ping(sockfd, addr, &header_payload);
-	printf("\n"),
+	printf("\n");
+
+	send_chunk(sockfd, addr, &header_payload, file_sent);
 
 	close_file(file_sent);
+}
+
+
+void send_chunk(int sockfd, struct sockaddr_in *addr, HeaderPayload *header_payload, FileSent *file_sent) {
+	header_payload->num = 0;
+	header_payload->total = file_sent->nb_chunk;
+	char chunk[DATA_LEN];
+	size_t bytesRead;
+
+	for (size_t i = 1; i <= file_sent->nb_chunk; i++) {
+		size_t size_to_read = DATA_LEN;
+		if (i == file_sent->nb_chunk) {
+			size_to_read = file_sent->size_file % (DATA_LEN);
+		}
+
+		if (size_to_read == 0) {
+			size_to_read = DATA_LEN;
+		}
+
+		bytesRead = fread(chunk, 1, size_to_read, file_sent->file);
+		if (bytesRead == 0) {
+			perror("invalid number of send chunk");
+			exit(EXIT_FAILURE);
+		}
+
+		for (size_t j = 0; j < size_to_read; j++) {
+			chunk[j] = chunk[j] ^ file_sent->xor_key;
+		}
+
+		header_payload->num = i;
+		send_ping(sockfd, addr, chunk, header_payload, size_to_read);
+		printf("Send chunk %d out of %d.\n", header_payload->num, header_payload->total);
+		receive_ping(sockfd, addr, header_payload);
+	}
+
+	return;
 }

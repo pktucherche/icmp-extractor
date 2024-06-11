@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "file.h"
 #include "sha256.h"
+#include "icmp.h"
 
 
 
@@ -28,14 +29,14 @@ FileSent *open_file(Input *input) {
 	file_sent->xor_key = rand() % 256;
 
 	SHA256_CTX ctx;
-	BYTE buffer[1024];
+	BYTE buffer[DATA_LEN];
 	size_t bytesRead;
 
 	sha256_init(&ctx);
 
 	file_sent->nb_chunk = 0;
 	file_sent->size_file = 0;
-	while ((bytesRead = fread(buffer, 1, sizeof(buffer), file_sent->file)) !=0) {
+	while ((bytesRead = fread(buffer, 1, sizeof(buffer), file_sent->file)) != 0) {
 		file_sent->nb_chunk++;
 		file_sent->size_file += bytesRead;
 		sha256_update(&ctx, buffer, bytesRead);

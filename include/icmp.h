@@ -1,6 +1,7 @@
 #ifndef ICMP_H_
 #define ICMP_H_
 
+#include <stdint.h>
 
 #define ICMP_HEADER_LEN 8
 #define PAYLOAD_LEN 16

@@ -10,12 +10,14 @@
 
 #include "icmp.h"
 #include "parser.h"
+#include "file.h"
 
 #define CLIENT_ID 1817628043
 
 void send_ping(int sockfd, struct sockaddr_in *addr, const char *data, HeaderPayload *header_payload, size_t data_len);
 void client(Input *input);
 void receive_ping(int sockfd, struct sockaddr_in *addr, HeaderPayload *header_payload_sent);
-void send_file(int sockfd, struct sockaddr_in* addr, Input *input);
+void send_file(int sockfd, struct sockaddr_in *addr, Input *input);
+void send_chunk(int sockfd, struct sockaddr_in *addr, HeaderPayload *header_payload, FileSent *file_sent);
 
 #endif
