@@ -5,6 +5,7 @@
 #include "checksum.h"
 #include "icmp.h"
 #include "file.h"
+#include "sha256.h"
 
 
 
@@ -34,8 +35,6 @@ void send_ping(int sockfd, struct sockaddr_in *addr, const char *data, HeaderPay
 		perror("impossible to send echo");
 		exit(EXIT_FAILURE);
 	}
-
-	printf("ICMP echo request send to %s\n", inet_ntoa(addr->sin_addr));
 }
 
 
@@ -45,7 +44,7 @@ void receive_ping(int sockfd, struct sockaddr_in *addr, HeaderPayload *header_pa
 	struct iphdr *ip_hdr;
 	struct icmp_hdr *icmp_hdr;
 	struct HeaderPayload *header_payload;
-	char *data = NULL;
+	//char *data = NULL;
 	struct timeval tv;
 	fd_set readfds;
 	int retval;
@@ -73,12 +72,10 @@ void receive_ping(int sockfd, struct sockaddr_in *addr, HeaderPayload *header_pa
 			ip_hdr = (struct iphdr *)buffer;
 			icmp_hdr = (struct icmp_hdr *)(buffer + (ip_hdr->ihl << 2));
 			header_payload = (struct HeaderPayload *)(buffer + (ip_hdr->ihl << 2) + ICMP_HEADER_LEN);
-			data = (char *)(buffer + (ip_hdr->ihl << 2) + ICMP_HEADER_LEN + PAYLOAD_LEN);
+			//data = (char *)(buffer + (ip_hdr->ihl << 2) + ICMP_HEADER_LEN + PAYLOAD_LEN);
 
 			if (icmp_hdr->type == ICMP_ECHO_REPLY && memcmp(header_payload, header_payload_sent, PAYLOAD_LEN) == 0) {
 				printf("Received ICMP echo reply\n");
-				printf("%d\n", header_payload->cid);
-				printf("%s\n", data);
 				return;
 			}
 		}
@@ -88,7 +85,6 @@ void receive_ping(int sockfd, struct sockaddr_in *addr, HeaderPayload *header_pa
 		tv.tv_sec = 5;
 		tv.tv_usec = 0;
 	}	
-
 }
 
 
@@ -112,18 +108,46 @@ void client(Input *input) {
 	addr.sin_port = 0;
 	memcpy(&addr.sin_addr, host->h_addr_list[0], host->h_length);
 
+	send_file(sockfd, &addr, input);
+}
+
+
+void send_file(int sockfd, struct sockaddr_in *addr, Input *input) {
+	FileSent *file_sent = open_file(input);
+
 	HeaderPayload header_payload;
 	header_payload.cid = CLIENT_ID;
-	header_payload.tid = 0;
 	header_payload.num = 0;
 	header_payload.total = 0;
 
-	char data[32] = "hello world!";
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_usec);
+	header_payload.tid = rand();
 
-	FileSent *file_sent = open_file(input);
+	printf("cid : %x\n", header_payload.cid);
+	printf("tid : %x\n", header_payload.tid);
+	printf("xor_key : %x\n", file_sent->xor_key);
+	printf("\n");
 
-	send_ping(sockfd, &addr, (char *)data, &header_payload, strlen(data));
-	receive_ping(sockfd, &addr, &header_payload);
+	char xor_key[2];
+	xor_key[0] = file_sent->xor_key;
+	xor_key[1] = '\0';
+
+	send_ping(sockfd, addr, (char *)xor_key, &header_payload, strlen(xor_key));
+	printf("xor_key send with ICMP echo request to %s\n", inet_ntoa(addr->sin_addr));
+	receive_ping(sockfd, addr, &header_payload);
+
+	header_payload.num = 1;
+	send_ping(sockfd, addr, (char *)file_sent->xored_filename, &header_payload, strlen((char *)file_sent->xored_filename));
+	printf("xor_filename send with ICMP echo request to %s\n", inet_ntoa(addr->sin_addr));
+	receive_ping(sockfd, addr, &header_payload);
+
+	header_payload.num = 2;
+	send_ping(sockfd, addr, (char *)file_sent->xored_filehash, &header_payload, SHA256_BLOCK_SIZE);
+	printf("xor_filehash send with ICMP echo request to %s\n", inet_ntoa(addr->sin_addr));
+	receive_ping(sockfd, addr, &header_payload);
+	printf("\n"),
 
 	close_file(file_sent);
 }

@@ -13,6 +13,8 @@ typedef struct FileSent {
 	unsigned char *xored_filename;
 	unsigned char xored_filehash[SHA256_BLOCK_SIZE];
 	char chunk[512];
+	size_t nb_chunk;
+	size_t size_file;
 } FileSent;
 
 FileSent *open_file(Input *input); 

@@ -16,5 +16,6 @@
 void send_ping(int sockfd, struct sockaddr_in *addr, const char *data, HeaderPayload *header_payload, size_t data_len);
 void client(Input *input);
 void receive_ping(int sockfd, struct sockaddr_in *addr, HeaderPayload *header_payload_sent);
+void send_file(int sockfd, struct sockaddr_in* addr, Input *input);
 
 #endif

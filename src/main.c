@@ -14,10 +14,12 @@ int main(int argc, char *argv[]) {
 
 	if (input->network == SERVER) {
 		printf("starting server...\n");
+		printf("\n");
 	} else if (input->network == CLIENT) {
 		printf("starting client...\n");
 		printf("ip : %s\n", input->ip);
 		printf("file : %s\n", input->file);
+		printf("\n");
 
 		client(input);
 	}

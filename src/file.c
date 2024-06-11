@@ -33,7 +33,11 @@ FileSent *open_file(Input *input) {
 
 	sha256_init(&ctx);
 
+	file_sent->nb_chunk = 0;
+	file_sent->size_file = 0;
 	while ((bytesRead = fread(buffer, 1, sizeof(buffer), file_sent->file)) !=0) {
+		file_sent->nb_chunk++;
+		file_sent->size_file += bytesRead;
 		sha256_update(&ctx, buffer, bytesRead);
 	}
 
@@ -46,7 +50,7 @@ FileSent *open_file(Input *input) {
 
 	fseek(file_sent->file, 0, SEEK_SET);
 
-	file_sent->xored_filename = malloc(sizeof(unsigned char) * strlen(file_sent->filename));
+	file_sent->xored_filename = malloc(sizeof(unsigned char) * strlen(file_sent->filename) + 1);
 	if (file_sent->xored_filename == NULL) {
 		perror("impossible to xor filename");
 		exit(EXIT_FAILURE);
@@ -55,6 +59,7 @@ FileSent *open_file(Input *input) {
 	for (size_t i = 0; i < strlen(file_sent->filename); i++) {
 		file_sent->xored_filename[i] = file_sent->filename[i] ^ file_sent->xor_key;
 	}
+	file_sent->xored_filename[strlen(file_sent->filename)] = '\0';
 
 	return file_sent;
 }
